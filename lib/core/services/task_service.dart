@@ -1,21 +1,21 @@
-import '../models/task_model.dart';
+import 'package:hive_ce/hive.dart';
+
+import '../hive_model/task_model.dart';
 
 class TaskService {
-  List<TaskModel> tasks = [];
+  final Box<TaskModel> taskBox = Hive.box<TaskModel>('tasks');
 
   List<TaskModel> getTask() {
-    return tasks;
+    return taskBox.values.toList();
   }
 
   void addTask(String taskName) {
-    tasks.add(TaskModel(name: taskName));
+    final task = TaskModel(name: taskName);
+    taskBox.add(task);
   }
 
   void deleteTask(int index) {
-    if ((index >= 0) && (index < tasks.length)) {
-      tasks.removeAt(index);
-    } else {
-      return;
-    }
+    final key = taskBox.keyAt(index);
+    taskBox.delete(key);
   }
 }

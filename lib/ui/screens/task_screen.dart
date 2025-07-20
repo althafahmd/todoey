@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:hive_ce_flutter/adapters.dart';
 
 import '../../core/services/task_service.dart';
 import '../widgets/add_task_modal.dart';
 import '../widgets/task_tile.dart';
-import '../../core/models/task_model.dart';
+import '../../core/hive_model/task_model.dart';
 import '../../utilities/screen_size_config.dart';
 import '../../utilities/app_typography.dart';
 import '../../utilities/app_colors.dart';
@@ -27,6 +28,7 @@ class _TaskScreenState extends State<TaskScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final box = Hive.box<TaskModel>('tasks');
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -53,7 +55,7 @@ class _TaskScreenState extends State<TaskScreen> {
                   ),
                   Text('Todoey', style: AppTypography.titleLarge),
                   Text(
-                    '${taskList.length} Tasks',
+                    '${box.length} Tasks',
                     style: AppTypography.labelTextStyle.copyWith(
                       color: AppColors.primaryBlue,
                     ),
@@ -71,30 +73,34 @@ class _TaskScreenState extends State<TaskScreen> {
                     topRight: Radius.circular(50.0),
                   ),
                 ),
-                child: taskList.isEmpty
-                    ? Center(
+                child: ValueListenableBuilder(
+                  valueListenable: box.listenable(),
+                  builder: (context, Box<TaskModel> updatedBox, _) {
+                    if (updatedBox.isEmpty) {
+                      return Center(
                         child: Text(
                           'Add Tasks',
                           style: AppTypography.labelTextStyle.copyWith(
                             color: AppColors.textColor,
                           ),
                         ),
-                      )
-                    : ListView.builder(
-                        itemCount: taskList.length,
-                        physics: BouncingScrollPhysics(),
-                        shrinkWrap: true,
-                        scrollDirection: Axis.vertical,
-                        itemBuilder: (context, index) => TaskTile(
-                          taskName: taskList[index].name,
-                          onDelete: () {
-                            setState(() {
-                              taskService.deleteTask(index);
-                              taskService.getTask();
-                            });
-                          },
-                        ),
-                      ),
+                      );
+                    }
+                    return ListView.builder(
+                      itemCount: updatedBox.length,
+                      physics: BouncingScrollPhysics(),
+                      shrinkWrap: true,
+                      scrollDirection: Axis.vertical,
+                      itemBuilder: (context, index) {
+                        final task = updatedBox.getAt(index)!;
+                        return TaskTile(
+                          taskName: task.name,
+                          onDelete: () => task.delete(),
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
             ),
           ],
@@ -110,10 +116,7 @@ class _TaskScreenState extends State<TaskScreen> {
             context: context,
             builder: (context) => AddTaskModal(
               onTaskAdded: (String taskName) {
-                setState(() {
-                  taskService.addTask(taskName);
-                  taskList = taskService.getTask(); // Update local state
-                });
+                taskService.addTask(taskName);
               },
             ),
           );
