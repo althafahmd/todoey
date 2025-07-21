@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:hive_ce_flutter/adapters.dart';
 
+import '../widgets/smooth_typewriter_text.dart';
 import '../../core/services/task_service.dart';
 import '../widgets/add_task_modal.dart';
 import '../widgets/task_tile.dart';
@@ -10,6 +12,7 @@ import '../../utilities/app_typography.dart';
 import '../../utilities/app_colors.dart';
 
 class TaskScreen extends StatefulWidget {
+  static String id = 'task-screen';
   const TaskScreen({super.key});
 
   @override
@@ -18,12 +21,38 @@ class TaskScreen extends StatefulWidget {
 
 class _TaskScreenState extends State<TaskScreen> {
   List<TaskModel> taskList = [];
+  bool _isExtended = true;
   TaskService taskService = TaskService();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     taskList = taskService.getTask();
+
+    _scrollController.addListener(() {
+      final isAtTop = _scrollController.offset <= 50;
+      final isScrollingDown =
+          _scrollController.position.userScrollDirection ==
+          ScrollDirection.reverse;
+
+      if (isScrollingDown && _isExtended) {
+        setState(() => _isExtended = false);
+      } else if (!isScrollingDown && !_isExtended && isAtTop) {
+        setState(() => _isExtended = true);
+      }
+    });
+  }
+
+  void _showAddTaskModal() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => AddTaskModal(
+        onTaskAdded: (String taskName) {
+          taskService.addTask(taskName);
+        },
+      ),
+    );
   }
 
   @override
@@ -47,16 +76,31 @@ class _TaskScreenState extends State<TaskScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CircleAvatar(
-                        maxRadius: ScreenSizeConfig.screenWidth * 0.085,
-                        backgroundColor: AppColors.pureWhite,
-                        child: Icon(
-                          Icons.list,
-                          color: AppColors.cardColor,
-                          size: ScreenSizeConfig.screenWidth * 0.1,
+                      Container(
+                        width: ScreenSizeConfig.screenWidth * 0.2,
+                        height: ScreenSizeConfig.screenWidth * 0.2,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryBlue,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.primaryBlue,
+                            width: 5.0,
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          backgroundColor: AppColors.pureWhite,
+                          maxRadius: ScreenSizeConfig.screenWidth * 0.1,
+                          child: Image.asset(
+                            'assets/gifs/to-do-list.gif',
+                            height: ScreenSizeConfig.screenWidth * 0.1,
+                            colorBlendMode: BlendMode.multiply,
+                          ),
                         ),
                       ),
-                      Text('Todoey', style: AppTypography.titleLarge),
+                      SmoothTypewriterText(
+                        text: 'Todoey',
+                        textStyle: AppTypography.titleLarge,
+                      ),
                       Text(
                         '${updatedBox.length} Tasks',
                         style: AppTypography.labelTextStyle.copyWith(
@@ -89,6 +133,7 @@ class _TaskScreenState extends State<TaskScreen> {
                             ),
                           )
                         : ListView.builder(
+                            controller: _scrollController,
                             itemCount: updatedBox.length,
                             physics: BouncingScrollPhysics(),
                             shrinkWrap: true,
@@ -96,7 +141,7 @@ class _TaskScreenState extends State<TaskScreen> {
                             itemBuilder: (context, index) {
                               final task = updatedBox.getAt(index)!;
                               return TaskTile(
-                                taskName: task.name,
+                                task: task,
                                 onDelete: () => task.delete(),
                               );
                             },
@@ -108,22 +153,47 @@ class _TaskScreenState extends State<TaskScreen> {
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primaryBlue,
-        shape: CircleBorder(),
-        elevation: 10.0,
-        child: Icon(Icons.add),
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            builder: (context) => AddTaskModal(
-              onTaskAdded: (String taskName) {
-                taskService.addTask(taskName);
-              },
+      floatingActionButton: _isExtended
+          ? AnimatedContainer(
+              width: ScreenSizeConfig.screenWidth * 0.25,
+              duration: Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              child: FloatingActionButton.extended(
+                isExtended: _isExtended,
+                backgroundColor: AppColors.primaryBlue,
+                elevation: 10.0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(100.0),
+                ),
+                label: Text('Add', style: AppTypography.buttonTextStyle),
+                icon: Icon(Icons.add),
+                onPressed: _showAddTaskModal,
+              ),
+            )
+          : AnimatedContainer(
+              width: ScreenSizeConfig.screenWidth * 0.13,
+              duration: Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              child: FloatingActionButton.extended(
+                backgroundColor: AppColors.primaryBlue,
+                elevation: 10.0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(100.0),
+                ),
+                icon: Padding(
+                  padding: const EdgeInsets.only(left: 10.0),
+                  child: Icon(Icons.add),
+                ),
+                label: SizedBox(),
+                onPressed: _showAddTaskModal,
+              ),
             ),
-          );
-        },
-      ),
     );
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 }

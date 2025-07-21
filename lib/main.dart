@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_ce_flutter/adapters.dart';
 
+import 'ui/screens/splash_screen.dart';
 import 'core/hive_model/task_model.dart';
 import 'ui/screens/task_screen.dart';
 import 'utilities/app_colors.dart';
@@ -22,10 +23,14 @@ class Todoey extends StatelessWidget {
     ScreenSizeConfig.init(context);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      initialRoute: SplashScreen.id,
+      routes: {
+        SplashScreen.id: (context) => SplashScreen(),
+        TaskScreen.id: (context) => TaskScreen(),
+      },
       theme: ThemeData.dark(
         useMaterial3: true,
       ).copyWith(scaffoldBackgroundColor: AppColors.cardColor),
-      home: TaskScreen(),
     );
   }
 }

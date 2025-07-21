@@ -16,7 +16,7 @@ class AppTypography {
     fontFamily: 'Poppins',
     fontSize: ScreenSizeConfig.screenWidth * 0.2,
     letterSpacing: 1.0,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w600,
   );
 
   static TextStyle labelTextStyle = TextStyle(
