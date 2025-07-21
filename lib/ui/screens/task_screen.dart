@@ -141,6 +141,7 @@ class _TaskScreenState extends State<TaskScreen> {
                             itemBuilder: (context, index) {
                               final task = updatedBox.getAt(index)!;
                               return TaskTile(
+                                key: ValueKey(task.key),
                                 task: task,
                                 onDelete: () => task.delete(),
                               );
